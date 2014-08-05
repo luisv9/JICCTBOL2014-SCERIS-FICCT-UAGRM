@@ -1,3 +1,4 @@
+///Proyecto VMNB2C3.1.0
 #include<windows.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
