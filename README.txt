@@ -1,4 +1,4 @@
 JICCTBOL2014-SCERIS-FICCT-UAGRM
 ===============================
 
-proyecto simulador versión1.0 para JICCTBOL PANDO 
+Proyecto simulador versión1.0 PARA JICCTBOL2014 PANDO 
