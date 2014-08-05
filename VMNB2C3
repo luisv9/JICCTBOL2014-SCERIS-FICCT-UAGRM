@@ -1,0 +1,392 @@
+#include<windows.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glut.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
+///Constante En X
+float a=0;
+///Parte Del Zoom
+float z=-12;
+///Variables De La Dimension
+float base,altura,delta;
+///Cantidad De Puntos
+int pY,pZ;
+///Matriz
+GLfloat ***puntos;
+///Variables ParaEl Mouse
+float alpha, beta;
+int xo;
+int yo;
+///***************
+//propiedades del material
+GLfloat mat_ambient[] = {0.0f, 0.05f, 0.06f, 1.0f};
+GLfloat mat_diffuse[] = {0.0f, 0.50980392f, 0.50980392f, 1.0f};
+GLfloat mat_specular[] = {0.90196078f, 0.90196078f, 0.90196078f, 1.0f};
+//angulos de rotacion
+GLfloat rotx = 0.0;
+GLfloat roty = 0.0;
+GLfloat rotz = 0.0;
+
+///Variables Para El Menu
+bool mostrar = false;  //Visibilidad de los Puntos
+bool mover = true;
+int iFondo = 0;
+typedef enum {FONDO1,FONDO2,FONDO3,MOSTRARPUNTO,OCULTARPUNTO,MOVER,NOMOVER}
+opcionesMenu;
+
+static char label[100];
+
+void inline drawString (char *s)
+{
+ unsigned int i;
+ for (i = 0; i<strlen(s); i++)
+	glutBitmapCharacter(GLUT_BITMAP_HELVETICA_10, s[i]);
+}
+
+void onMenu(int opcion) {
+ switch(opcion) {
+    case FONDO1:
+    iFondo = 0;
+    break;
+    case FONDO2:
+    iFondo = 1;
+    break;
+    case FONDO3:
+    iFondo = 2;
+    break;
+    case MOSTRARPUNTO:
+    mostrar=true;/////aqui la funcion mostrar punto.
+    break;
+    case OCULTARPUNTO:
+    mostrar=false;
+    break;
+    case MOVER:
+    mover = true;
+    break;
+    case NOMOVER:
+    mover = false;
+    break;
+ }
+ glutPostRedisplay();
+}
+
+ //SubMenu
+ void CrearSubMenu(void) {
+ int menuFondo, menuPrincipal,menuPuntos,menuMovimiento;
+
+ menuFondo = glutCreateMenu(onMenu);
+  glutAddMenuEntry("Negro", FONDO1);
+  glutAddMenuEntry("Verde Oscuro", FONDO2);
+  glutAddMenuEntry("Azul Oscuro", FONDO3);
+
+ menuPuntos = glutCreateMenu(onMenu);
+  glutAddMenuEntry("Mostrar", MOSTRARPUNTO);
+  glutAddMenuEntry("Ocultar", OCULTARPUNTO);
+
+ menuMovimiento = glutCreateMenu(onMenu);
+  glutAddMenuEntry("Mover", MOVER);
+  glutAddMenuEntry("No Mover", NOMOVER);
+
+ menuPrincipal = glutCreateMenu(onMenu);
+  glutAddSubMenu("Color de Fondo",menuFondo);
+  glutAddSubMenu("Puntos",menuPuntos);
+  glutAddSubMenu("Movimiento",menuMovimiento);
+
+ glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
+
+
+//dibuja los puntos de control de la superficie
+void DrawPoints(void)
+{
+ int i,j;
+ //cambio el tamaño del pixels para hacerlo mas visible
+ glPointSize(4.0f);
+
+ //dibujo todos los puntos de control de la superficie
+ glColor3f( 1.0, 0.0, 0.0);
+ glBegin(GL_POINTS);
+ for(i = 0; i < pY; i++){
+    for (j = 0; j < pZ; j++)
+       glVertex3fv(puntos[i][j]);}
+ glEnd();
+
+ if(mostrar==true){ ///Para Mostrar O No Las Coordenadas
+    for(i = 0; i < pY; i++){
+        for (j = 0; j < pZ; j++){
+           glRasterPos3fv(puntos[i][j]); //el lugar donde se va a escribir el punto
+            sprintf(label,"%0.1f,%0.1f,%0.1f",puntos[i][j][0],puntos[i][j][1],puntos[i][j][2]); //deberia de dibujar el punto
+            drawString(label);
+
+        }
+    }
+
+ }
+
+
+ glColor3f( 0.0, 1.0, 1.0);
+ glBegin(GL_LINES);
+ for (i = 0; i < pY-1; i++)
+     for (j = 0; j < pZ-2; j++)
+         {
+         glVertex3fv(puntos[i][j]);
+         glVertex3fv(puntos[i][j+1]);
+         }
+  for (i = 0; i < pZ-1; i++)
+     for (j = 0; j < pY-2; j++)
+         {
+         glVertex3fv(puntos[j][i]);
+         glVertex3fv(puntos[j+1][i]);
+         }
+ glEnd();
+
+                //creamos la linea respecto al plano z(es el vector z)
+                glColor3f(2.0f, 0.0f, 0.0f);
+                glBegin(GL_LINE_LOOP);
+                glVertex3f(0.0, 0.0, -4.5);
+                glVertex3f(0.0, 0.0, 4.5);
+                glEnd();
+
+                sprintf(label,"Z");
+                glRasterPos3f(0,0,5);
+                drawString(label);
+                glFlush();
+                glutSwapBuffers();
+
+                sprintf(label,"-Z");
+                glRasterPos3f(0,0,-5);
+                drawString(label);
+                glFlush();
+                glutSwapBuffers();
+                //***********************************
+                 //creamos la linea respecto al plano y(es el vector y)
+                glColor3f(0.0f, 2.0f, 0.0f);
+                glBegin(GL_LINE_LOOP);
+                glVertex3f(0.0, -4.5, 0.0);
+                glVertex3f(0.0, 4.5, 0);
+                glEnd();
+
+                sprintf(label,"Y");
+                glRasterPos3f(0,5,0);
+                drawString(label);
+                glFlush();
+                glutSwapBuffers();
+
+                sprintf(label,"-Y");
+                glRasterPos3f(0,-5,0);
+                drawString(label);
+                glFlush();
+                glutSwapBuffers();
+                //***********************************
+
+                 //creamos la linea respecto al plano x(es el vector x)
+                 glColor3f(0.0f, 0.0f, 2.0f);
+                 glBegin(GL_LINE_LOOP);
+                 glVertex3f(-4.5, 0.0, 0.0);
+                 glVertex3f(4.5, 0.0, 0);
+                 glEnd();
+
+                sprintf(label,"X");
+                glRasterPos3f(5,0,0);
+                drawString(label);
+                glFlush();
+                glutSwapBuffers();
+
+                sprintf(label,"-X");
+                glRasterPos3f(-5,0,0);
+                drawString(label);
+                glFlush();
+                glutSwapBuffers();
+                //***********************************
+
+  glFlush();
+ glPopAttrib();
+
+}
+//dibuja la superficie
+void display(void)
+{
+ glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+ glMatrixMode( GL_MODELVIEW_MATRIX );
+ glLoadIdentity();
+
+///////hace el Zoom moviendo la camara y no el objeto
+ glTranslatef(0.0, 0.0, z);
+ glRotatef(rotx, 1.0, 0.0, 0.0);
+ glRotatef(roty, 0.0, 1.0, 0.0);
+ glRotatef(rotz, 0.0, 0.0, 1.0);
+//////////////*************************/////////////////
+////////////rota el objeto para mejor observacion
+gluLookAt(0.0f, 0.0f, 5.0f,
+ 0.0f, 0.0f, 0.0f,
+ 0.0f, 1.0f, 0.0f);
+ glRotatef(alpha, 1.0f, 0.0f, 0.0f);
+ glRotatef(beta, 0.0f, 1.0f, 0.0f);
+
+ float colores[3][3] = {
+ { 0.00f, 0.00f, 0.00f}, // 0 - negro
+ { 0.06f, 0.25f, 0.13f}, // 1 - verde oscuro
+ { 0.10f, 0.07f, 0.33f}  // 2 - azul oscuro
+ };
+ glClearColor(colores[iFondo][0],colores[iFondo][1],colores[iFondo][2],1);
+ glClear(GL_COLOR_BUFFER_BIT);
+ glutSwapBuffers();
+ DrawPoints();
+
+ glFlush();
+}
+
+///Mover Con El Mouse
+void onMouse(int button, int state, int x, int y) {
+
+    if ( (button == GLUT_LEFT_BUTTON) & (state == GLUT_DOWN) ) {
+    xo = x;
+    yo = y;
+    }
+ }
+
+void onMotion(int x, int y) {
+    if (mover == true){
+    alpha = (alpha + (y - yo));
+    beta = (beta + (x - xo));
+    xo = x;
+    yo = y;
+    glutPostRedisplay();
+    }
+}
+///**********************
+
+void reshape(int w, int h)
+{
+ glViewport (0, 0, (GLsizei) w, (GLsizei) h);
+ glMatrixMode (GL_PROJECTION);
+ glLoadIdentity ();
+ gluPerspective(100, (GLfloat) w/(GLfloat) h, 0.5, 50.0);
+ glMatrixMode (GL_MODELVIEW);
+}
+
+void keyboard(unsigned char key, int x, int y)
+{
+   switch (key) {
+
+   case 27:
+      exit(0);
+      break;
+   case '+':
+      z = z + 1.0f;
+      glutPostRedisplay();
+      break;
+   case '-':
+      z = z - 1.0f;
+      glutPostRedisplay();
+      break;
+
+   }
+}
+
+void setDatos()
+{
+ float p,w;
+ int i,j;
+ bool cp = true;
+ printf("\n Introducir Solo Datos Enteros\n");
+ while (cp){
+    printf("\nColocar Una Base: ");
+    scanf("%f",&base);
+    printf("\nColocar Una Altura: ");
+    scanf("%f",&altura);
+
+    if (( (int)altura == altura )&&( (int)base == base)){
+        cp = false;
+    }else{
+        printf("\nValores De La Base Y Altura No Validos\n");
+    }
+ }
+
+ p = altura/2;
+ w = base/2;
+
+ ///Configurando Delta (Escala)
+
+if (p != w){
+    while(p != w)
+        {
+            if(p > w){
+                p = p-w;
+            }else{
+                if (w > p){
+                w = w-p;
+                }
+            }
+        }
+    delta = p;
+    }else{
+    delta = p/2;
+    }
+
+ ///Cantidad De Puntos
+
+ p = w = 0;
+
+ for (i = 1; p <= altura; i++)
+    p = p + delta;
+
+ for (j = 1; w <= base; j++)
+    w = w + delta;
+
+ pY = i;
+ pZ = j;
+
+///Crear Matriz
+
+ puntos = new GLfloat **[pY];
+
+ for ( i = 0; i < pY; i++) {
+        puntos[i] = new GLfloat *[pZ];
+    }
+
+ for ( i = 0; i < pY; i++) {
+    for ( j = 0; j < pZ; j++){
+        puntos[i][j] = new GLfloat[3];
+        }
+    }
+
+ ///Cargar Puntos
+
+ p = (altura/2)*(-1);
+
+ for ( i = 0; p <= altura/2; i++){
+    w = (base/2)*(-1);
+    for ( j = 0; w <= base/2; j++){
+        puntos[i][j][0] = a;
+        puntos[i][j][1] = p;
+        puntos[i][j][2] = w;
+        w = w+delta;
+    }
+    p = p+delta;
+ }
+
+}
+
+int main(int argc, char** argv)
+{
+glutInit(&argc, argv);
+glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+glutCreateWindow("Simulador VMNB2C3");
+glutDisplayFunc(display);
+ CrearSubMenu();
+ glutInitWindowSize (300, 300);
+ glutInitWindowPosition (100, 100);
+ glutReshapeFunc(reshape);
+ ///////fucion que activa el zoonn con teclado
+  glutKeyboardFunc(keyboard);
+ glutMouseFunc(onMouse);
+ //sirve para mover con el mausse
+ glutMotionFunc(onMotion);
+ setDatos();
+ glutMainLoop();
+ return 0;
+}
